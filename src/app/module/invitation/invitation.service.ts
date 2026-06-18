@@ -2,6 +2,7 @@ import { InvitationStatus } from "@prisma/client";
 import prisma from "../../utils/prisma";
 import { sendEmail } from "../../utils/email";
 import { envVars as config } from "../../config/env";
+import { sendNotification } from "../../utils/socket";
 
 const sendInvitation = async (inviterId: string, payload: { eventId: string, email: string }) => {
     const event = await prisma.event.findUnique({ where: { id: payload.eventId } });
@@ -43,6 +44,18 @@ const sendInvitation = async (inviterId: string, payload: { eventId: string, ema
             eventVenue: event.venue,
             loginLink: `${config.FRONTEND_URL}/login?email=${encodeURIComponent(invitee.email)}` // Pass invited email as query param
         }).catch((err: any) => console.error("Failed to send invitation email:", err));
+
+        // Send real-time notification
+        (async () => {
+            try {
+                await sendNotification(invitee.id, {
+                    title: "New Event Invitation",
+                    message: `${inviter.name} has invited you to the event "${event.title}".`
+                });
+            } catch (err) {
+                console.error("Failed to send real-time notification in sendInvitation", err);
+            }
+        })();
     }
 
     return invitation;
@@ -53,10 +66,25 @@ const respondToInvitation = async (invitationId: string, inviteeId: string, newS
     if (!invitation) throw new Error("Invitation not found");
     if (invitation.inviteeId !== inviteeId) throw new Error("You cannot respond to this invitation");
 
-    return await prisma.invitation.update({
+    const updated = await prisma.invitation.update({
         where: { id: invitationId },
-        data: { status: newStatus }
+        data: { status: newStatus },
+        include: { invitee: true, event: true }
     });
+
+    // Send real-time notification to the inviter
+    (async () => {
+        try {
+            await sendNotification(updated.inviterId, {
+                title: `Invitation ${newStatus}`,
+                message: `${updated.invitee.name} has ${newStatus.toLowerCase()} your invitation to "${updated.event.title}".`
+            });
+        } catch (err) {
+            console.error("Failed to send real-time notification in respondToInvitation", err);
+        }
+    })();
+
+    return updated;
 };
 
 const getMyInvitations = async (inviteeId: string) => {
