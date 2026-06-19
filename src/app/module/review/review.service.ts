@@ -1,5 +1,6 @@
 import z from "zod";
 import prisma from "../../utils/prisma";
+import { sendNotification } from "../../utils/socket";
 
 export const createReviewSchema = z.object({
     rating: z.number().min(1).max(5),
@@ -24,6 +25,23 @@ const createReview = async (userId: string, eventId: string, payload: any) => {
             eventId,
         }
     });
+
+    // Send real-time notification to the event host
+    (async () => {
+        try {
+            const event = await prisma.event.findUnique({ where: { id: eventId } });
+            const reviewer = await prisma.user.findUnique({ where: { id: userId } });
+            if (event && reviewer) {
+                await sendNotification(event.ownerId, {
+                    title: "New Event Review",
+                    message: `${reviewer.name} rated your event "${event.title}" ${payload.rating}/5 stars.`
+                });
+            }
+        } catch (err) {
+            console.error("Failed to send review notification", err);
+        }
+    })();
+
     return review;
 };
 
