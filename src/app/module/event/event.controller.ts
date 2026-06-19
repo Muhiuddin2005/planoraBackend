@@ -4,6 +4,8 @@ import { catchAsync } from "../../shared/catchAsync";
 import { sendResponse } from "../../shared/sendResponse";
 import { EventService } from "./event.service";
 import { jwtUtils } from "../../utils/jwt";
+import prisma from "../../utils/prisma";
+import { logActivity } from "../../utils/auditLogger";
 
 const createEvent = catchAsync(async (req: Request, res: Response) => {
     if (req.file) {
@@ -87,7 +89,23 @@ const updateEvent = catchAsync(async (req: Request, res: Response) => {
 
 const deleteEvent = catchAsync(async (req: Request, res: Response) => {
     const { userId, role } = req.user;
-    await EventService.deleteEvent(req.params.id as string, userId, role);
+    const id = req.params.id as string;
+    
+    // Get target event first to log title
+    const targetEvent = await prisma.event.findUnique({ where: { id } });
+
+    await EventService.deleteEvent(id, userId, role);
+
+    if (targetEvent && (role === "ADMIN" || role === "MODERATOR")) {
+        await logActivity({
+            userId,
+            action: "DELETE_EVENT",
+            targetId: id,
+            targetName: targetEvent.title,
+            details: `Deleted event "${targetEvent.title}" (ID: ${id})`
+        });
+    }
+
     sendResponse(res, {
         httpStatusCode: status.OK,
         success: true,
@@ -96,6 +114,37 @@ const deleteEvent = catchAsync(async (req: Request, res: Response) => {
     });
 });
 
-export const EventController = { createEvent, getAllEvents, getHostedEvents, getSingleEvent, updateEvent, deleteEvent };
+const updateEventStatus = catchAsync(async (req: Request, res: Response) => {
+    const id = req.params.id as string;
+    const { status: eventStatus, rejectionReason } = req.body;
+    const result = await EventService.updateEventStatus(id, eventStatus, rejectionReason);
+    
+    await logActivity({
+        userId: req.user.userId,
+        action: eventStatus === "APPROVED" ? "APPROVE_EVENT" : "REJECT_EVENT",
+        targetId: id,
+        targetName: result.title,
+        details: `${eventStatus === "APPROVED" ? "Approved" : "Rejected"} event "${result.title}"${rejectionReason ? ` (Reason: ${rejectionReason})` : ""}`
+    });
+
+    sendResponse(res, {
+        httpStatusCode: status.OK,
+        success: true,
+        message: "Event status updated successfully",
+        data: result,
+    });
+});
+
+const getAdminStats = catchAsync(async (_req: Request, res: Response) => {
+    const result = await EventService.getAdminStats();
+    sendResponse(res, {
+        httpStatusCode: status.OK,
+        success: true,
+        message: "Admin stats fetched successfully",
+        data: result,
+    });
+});
+
+export const EventController = { createEvent, getAllEvents, getHostedEvents, getSingleEvent, updateEvent, deleteEvent, updateEventStatus, getAdminStats };
 
 
