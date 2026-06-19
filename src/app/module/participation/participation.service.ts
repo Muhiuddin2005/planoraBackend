@@ -2,6 +2,7 @@ import { ParticipationStatus, PaymentStatus } from "@prisma/client";
 import prisma from "../../utils/prisma";
 import AppError from "../../errorHelpers/AppError";
 import status from "http-status";
+import { sendNotification } from "../../utils/socket";
 
 // Helper function to generate a 6-digit string
 const generateTicketCode = () => Math.floor(100000 + Math.random() * 900000).toString();
@@ -58,6 +59,32 @@ const requestToJoinEvent = async (userId: string, eventId: string) => {
         }
     });
 
+    // Send notifications async (do not block the response)
+    (async () => {
+        try {
+            const requester = await prisma.user.findUnique({ where: { id: userId } });
+            if (requester) {
+                if (initialStatus === ParticipationStatus.APPROVED) {
+                    await sendNotification(event.ownerId, {
+                        title: "New Participant Joined",
+                        message: `${requester.name} has joined your event "${event.title}".`
+                    });
+                    await sendNotification(userId, {
+                        title: "Registration Approved",
+                        message: `Your registration for "${event.title}" is confirmed!`
+                    });
+                } else {
+                    await sendNotification(event.ownerId, {
+                        title: "New Join Request",
+                        message: `${requester.name} requested to join your event "${event.title}".`
+                    });
+                }
+            }
+        } catch (err) {
+            console.error("Error triggering notifications in requestToJoinEvent", err);
+        }
+    })();
+
     return participation;
 };
 
@@ -89,6 +116,19 @@ const updateParticipationStatus = async (ownerId: string, participationId: strin
         where: { id: participationId },
         data: { status: newStatus }
     });
+
+    // Notify the participant
+    (async () => {
+        try {
+            let statusText = newStatus.toLowerCase();
+            await sendNotification(participation.userId, {
+                title: `Registration ${newStatus}`,
+                message: `Your registration status for "${participation.event.title}" has been updated to ${statusText}.`
+            });
+        } catch (err) {
+            console.error("Error sending notification on status update", err);
+        }
+    })();
 
     return updated;
 };
