@@ -10,10 +10,10 @@ router.post("/register", validateRequest(registerUserZodSchema), AuthController.
 router.post("/verify-email", AuthController.verifyEmail);
 router.post("/resend-otp", AuthController.resendOtp);
 router.post("/login", validateRequest(loginUserZodSchema), AuthController.loginUser);
-router.get("/me", checkAuth("USER", "ADMIN"), AuthController.getProfile);
+router.get("/me", checkAuth("USER", "ADMIN", "MODERATOR"), AuthController.getProfile);
 router.post("/forgot-password", AuthController.forgotPassword);
 router.post("/reset-password", AuthController.resetPassword);
-router.patch("/change-password", checkAuth("USER", "ADMIN"), AuthController.changePassword);
+router.patch("/change-password", checkAuth("USER", "ADMIN", "MODERATOR"), AuthController.changePassword);
 
 export const AuthRoutes = router;
 

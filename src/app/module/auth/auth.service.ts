@@ -29,7 +29,7 @@ const registerUser = async (payload: any) => {
     });
 
     // Send email asynchronously
-    sendEmail(payload.email, "Verify your email address", "otp", {
+    sendEmail(payload.email, "Verify Your Email - Planora", "otp", {
         name: payload.name,
         otp,
     }).catch((err: any) => console.error("Failed to send OTP email:", err));
