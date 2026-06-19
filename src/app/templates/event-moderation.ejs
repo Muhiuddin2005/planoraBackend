@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: sans-serif; background-color: #f8fafc; color: #1e293b; padding: 24px; }
+    .card { background-color: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0; padding: 24px; max-width: 600px; margin: 0 auto; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+    h1 { color: #4f46e5; font-size: 20px; margin-top: 0; }
+    p { font-size: 14px; line-height: 1.6; }
+    .status-approved { color: #15803d; font-weight: bold; }
+    .status-rejected { color: #b91c1c; font-weight: bold; }
+    .reason { background-color: #fef2f2; border-left: 4px solid #ef4444; padding: 12px; margin: 16px 0; font-style: italic; border-radius: 0 8px 8px 0; }
+    .footer { font-size: 11px; color: #94a3b8; margin-top: 24px; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Planora Event Moderation Update</h1>
+    <p>Hello <%= creatorName %>,</p>
+    <p>Your event <strong>"<%= eventTitle %>"</strong> has been reviewed by the Planora moderation team.</p>
+    <p>
+      Status: 
+      <% if (status === 'APPROVED') { %>
+        <span class="status-approved">APPROVED (Published)</span>
+      <% } else { %>
+        <span class="status-rejected">REJECTED</span>
+      <% } %>
+    </p>
+
+    <% if (status === 'REJECTED' && reason) { %>
+      <div class="reason">
+        <strong>Rejection Reason:</strong> <%= reason %>
+      </div>
+    <% } %>
+
+    <p>Thank you for using Planora!</p>
+    <div class="footer">
+      This is an automated system notification from Planora. Please do not reply directly.
+    </div>
+  </div>
+</body>
+</html>
