@@ -20,8 +20,39 @@ export const checkAuth = (...requiredRoles: Role[]) => {
                 return res.status(status.NOT_FOUND).json({ success: false, message: "User not found!" });
             }
 
+            if (user.status === "BANNED") {
+                return res.status(status.FORBIDDEN).json({ success: false, message: "Your account has been banned due to policy violations." });
+            }
+
             if (requiredRoles.length && !requiredRoles.includes(user.role)) {
-                return res.status(status.FORBIDDEN).json({ success: false, message: "Forbidden access!" });
+                // Prevent duplicate violation counts from concurrent requests on the same page load
+                const lastUpdated = new Date(user.updatedAt).getTime();
+                const now = Date.now();
+                const isRecentViolation = (now - lastUpdated) < 3000; // 3 seconds window
+
+                let newViolationCount = user.violationCount;
+                if (!isRecentViolation) {
+                    newViolationCount = user.violationCount + 1;
+                }
+
+                const shouldBan = newViolationCount >= 2;
+
+                if (!isRecentViolation) {
+                    await prisma.user.update({
+                        where: { id: user.id },
+                        data: {
+                            violationCount: newViolationCount,
+                            status: shouldBan ? "BANNED" : user.status
+                        }
+                    });
+                }
+
+                return res.status(status.FORBIDDEN).json({ 
+                    success: false, 
+                    message: shouldBan 
+                        ? "Forbidden access! Your account has been banned due to repeated unauthorized access attempts." 
+                        : `Forbidden access! Warning: Unauthorized access attempt registered (${newViolationCount}/2).`
+                });
             }
 
             req.user = decoded as Express.Request["user"];
