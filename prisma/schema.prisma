@@ -8,6 +8,7 @@ datasource db {
 
 enum Role {
   USER
+  MODERATOR
   ADMIN
 }
 
@@ -34,6 +35,12 @@ enum InvitationStatus {
   DECLINED
 }
 
+enum EventStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 model User {
   id           String     @id @default(uuid())
   name         String
@@ -53,6 +60,8 @@ model User {
   invitationsSent Invitation[] @relation("Inviter")
   invitationsRecv Invitation[] @relation("Invitee")
   reviews        Review[]
+  notifications  Notification[]
+  auditLogs      AuditLog[]
 
   @@map("users")
 }
@@ -67,6 +76,8 @@ model Event {
   isPublic    Boolean  @default(true)
   isPaid      Boolean  @default(false)
   fee         Float    @default(0.0)
+  status      EventStatus @default(PENDING)
+  rejectionReason String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -135,3 +146,40 @@ model Verification {
   createdAt  DateTime @default(now())
   @@map("verifications")
 }
+
+model Message {
+  id        String   @id @default(uuid())
+  name      String
+  email     String
+  message   String
+  createdAt DateTime @default(now())
+
+  @@map("messages")
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action     String
+  targetId   String?
+  targetName String?
+  details    String?
+  createdAt  DateTime @default(now())
+
+  @@map("audit_logs")
+}
+
