@@ -1,6 +1,7 @@
 import prisma from "../../utils/prisma";
 import { UserStatus } from "@prisma/client";
 import { sendNotification } from "../../utils/socket";
+import { sendEmail } from "../../utils/email";
 
 const getAllUsers = async () => {
     return await prisma.user.findMany({
@@ -115,8 +116,21 @@ const promoteUserRole = async (userId: string, role: "USER" | "MODERATOR") => {
                     ? "You now have Moderator privileges on Planora. Help keep the community safe!"
                     : "Your role has been updated back to a regular member."
             });
+
+            if (role === "MODERATOR") {
+                const dashboardUrl = `${process.env.FRONTEND_URL || "http://localhost:3000"}/dashboard`;
+                await sendEmail(
+                    user.email,
+                    "Congratulations! You've been promoted to Moderator - Planora",
+                    "role-promotion",
+                    {
+                        userName: user.name,
+                        dashboardUrl
+                    }
+                );
+            }
         } catch (err) {
-            console.error("Failed to send role promotion notification", err);
+            console.error("Failed to send role promotion notification or email", err);
         }
     })();
 

@@ -3,9 +3,63 @@ import prisma from "../../utils/prisma";
 import AppError from "../../errorHelpers/AppError";
 import status from "http-status";
 import { sendNotification } from "../../utils/socket";
+import { sendEmail } from "../../utils/email";
 
-// Helper function to generate a 6-digit string
-const generateTicketCode = () => Math.floor(100000 + Math.random() * 900000).toString();
+// Helper function to generate an 8-character alphanumeric string (mixed capital letters and numbers)
+const generateTicketCode = () => {
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    let code = "";
+    for (let i = 0; i < 8; i++) {
+        code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return code;
+};
+
+export const sendTicketEmail = async (participationId: string) => {
+    try {
+        const participation = await prisma.participation.findUnique({
+            where: { id: participationId },
+            include: {
+                user: true,
+                event: true
+            }
+        });
+
+        if (!participation) {
+            console.error(`Participation ${participationId} not found for sending ticket email.`);
+            return;
+        }
+
+        const userName = participation.user.name;
+        const userEmail = participation.user.email;
+        const eventTitle = participation.event.title;
+        const eventDate = participation.event.date.toDateString();
+        const eventTime = participation.event.time;
+        const eventVenue = participation.event.venue;
+        const ticketCode = participation.ticketCode;
+        const eventIsPaid = participation.event.isPaid;
+        const eventFee = participation.event.fee;
+
+        await sendEmail(
+            userEmail,
+            `Your Ticket for ${eventTitle} - Planora`,
+            "ticket",
+            {
+                userName,
+                eventTitle,
+                eventDate,
+                eventTime,
+                eventVenue,
+                ticketCode,
+                eventIsPaid,
+                eventFee
+            }
+        );
+        console.log(`Ticket email sent successfully to ${userEmail} for participation ${participationId}`);
+    } catch (err) {
+        console.error("Failed to send ticket email:", err);
+    }
+};
 
 const requestToJoinEvent = async (userId: string, eventId: string) => {
     const event = await prisma.event.findUnique({ where: { id: eventId } });
@@ -73,6 +127,8 @@ const requestToJoinEvent = async (userId: string, eventId: string) => {
                         title: "Registration Approved",
                         message: `Your registration for "${event.title}" is confirmed!`
                     });
+                    // Trigger ticket email for free public event instant join
+                    await sendTicketEmail(participation.id);
                 } else {
                     await sendNotification(event.ownerId, {
                         title: "New Join Request",
@@ -125,6 +181,10 @@ const updateParticipationStatus = async (ownerId: string, participationId: strin
                 title: `Registration ${newStatus}`,
                 message: `Your registration status for "${participation.event.title}" has been updated to ${statusText}.`
             });
+            // Trigger ticket email if approved and is a free event (paid events get ticket email on payment success)
+            if (newStatus === ParticipationStatus.APPROVED && !participation.event.isPaid) {
+                await sendTicketEmail(participation.id);
+            }
         } catch (err) {
             console.error("Error sending notification on status update", err);
         }

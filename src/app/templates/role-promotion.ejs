@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #f1f5f9; color: #1e293b; padding: 32px 16px; }
+    .card { background-color: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; overflow: hidden; max-width: 550px; margin: 0 auto; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
+    .header { background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); color: #ffffff; padding: 32px 24px; text-align: center; }
+    .header h1 { margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.025em; }
+    .header p { margin: 8px 0 0; font-size: 14px; opacity: 0.9; }
+    .content { padding: 28px 24px; }
+    .greeting { font-size: 18px; font-weight: 700; color: #0f172a; margin-top: 0; margin-bottom: 8px; }
+    .intro-text { font-size: 14px; color: #475569; line-height: 1.6; margin-top: 0; margin-bottom: 24px; }
+    .features-list { background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-bottom: 24px; }
+    .features-title { font-size: 12px; font-weight: 700; color: #4f46e5; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px; }
+    .feature-item { font-size: 13px; color: #334155; line-height: 1.5; margin-bottom: 8px; }
+    .feature-item:last-child { margin-bottom: 0; }
+    .feature-bullet { color: #7c3aed; font-weight: bold; margin-right: 6px; }
+    .cta-btn { display: block; background: #4f46e5; color: #ffffff !important; text-decoration: none; text-align: center; font-weight: 750; font-size: 14px; padding: 12px 24px; border-radius: 8px; margin: 24px 0; }
+    .footer { font-size: 12px; color: #94a3b8; text-align: center; border-top: 1px solid #f1f5f9; padding-top: 20px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="header">
+      <h1>Congratulations!</h1>
+      <p>Role Promotion on Planora</p>
+    </div>
+    <div class="content">
+      <p class="greeting">Hi <%= userName %>,</p>
+      <p class="intro-text">You have been promoted to a **Moderator** on the Planora platform by our administration team. Your account status and dashboard features have been updated immediately.</p>
+      
+      <div class="features-list">
+        <div class="features-title">YOUR NEW MODERATOR PRIVILEGES</div>
+        <div class="feature-item"><span class="feature-bullet">&bull;</span> Approve or reject newly submitted events.</div>
+        <div class="feature-item"><span class="feature-bullet">&bull;</span> Audit public comments and attendee listings.</div>
+        <div class="feature-item"><span class="feature-bullet">&bull;</span> Manage user accounts and flags to ensure community guidelines.</div>
+        <div class="feature-item"><span class="feature-bullet">&bull;</span> Access the specialized Moderator portal statistics and charts.</div>
+      </div>
+
+      <p class="intro-text">Please log back in to Planora and visit your workspace dashboard to access these new features.</p>
+      
+      <a href="<%= dashboardUrl %>" class="cta-btn">Go to Moderator Dashboard</a>
+
+      <div class="footer">
+        <p>Thank you for helping us keep Planora a safe and vibrant community workspace!</p>
+        <p style="font-size: 10px; color: #cbd5e1; margin-top: 16px;">Planora Inc. &copy; 2026. All rights reserved.</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

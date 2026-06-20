@@ -53,7 +53,7 @@ const handleStripeWebhook = async (event: any) => {
             include: { event: true }
         });
 
-        if (participation) {
+        if (participation && participation.paymentStatus !== PaymentStatus.PAID) {
             await prisma.participation.update({
                 where: { id: participationId },
                 data: {
@@ -61,6 +61,9 @@ const handleStripeWebhook = async (event: any) => {
                     status: participation.event.isPublic ? ParticipationStatus.APPROVED : ParticipationStatus.PENDING
                 }
             });
+            // Trigger ticket email for paid events (after payment success)
+            const { sendTicketEmail } = require("../participation/participation.service");
+            await sendTicketEmail(participationId);
         }
     }
     return { received: true };
@@ -85,6 +88,9 @@ const verifyPaymentSession = async (sessionId: string) => {
                     status: participation.event.isPublic ? ParticipationStatus.APPROVED : ParticipationStatus.PENDING
                 }
             });
+            // Trigger ticket email for paid events (after payment success)
+            const { sendTicketEmail } = require("../participation/participation.service");
+            await sendTicketEmail(participationId);
         }
         return { success: true, message: "Payment verified successfully" };
     }

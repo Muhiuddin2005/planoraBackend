@@ -72,6 +72,51 @@ const respondToInvitation = async (invitationId: string, inviteeId: string, newS
         include: { invitee: true, event: true }
     });
 
+    if (newStatus === "ACCEPTED") {
+        try {
+            const existingParticipation = await prisma.participation.findUnique({
+                where: {
+                    userId_eventId: {
+                        userId: inviteeId,
+                        eventId: invitation.eventId
+                    }
+                }
+            });
+
+            if (!existingParticipation) {
+                const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+                let ticketCode = "";
+                let isUnique = false;
+                while (!isUnique) {
+                    ticketCode = "";
+                    for (let i = 0; i < 8; i++) {
+                        ticketCode += chars.charAt(Math.floor(Math.random() * chars.length));
+                    }
+                    const codeExists = await prisma.participation.findUnique({ where: { ticketCode } });
+                    if (!codeExists) {
+                        isUnique = true;
+                    }
+                }
+
+                const participation = await prisma.participation.create({
+                    data: {
+                        userId: inviteeId,
+                        eventId: invitation.eventId,
+                        status: "APPROVED",
+                        paymentStatus: "UNPAID",
+                        ticketCode,
+                    }
+                });
+
+                // Send confirmation email
+                const { sendTicketEmail } = require("../participation/participation.service");
+                await sendTicketEmail(participation.id);
+            }
+        } catch (err) {
+            console.error("Failed to auto-join participant on invitation accept:", err);
+        }
+    }
+
     // Send real-time notification to the inviter
     (async () => {
         try {
